@@ -1,0 +1,28 @@
+{
+  "name": "nodejs_study",
+  "version": "1.0.0",
+  "description": "NodeJS 교과서 by 조헌영 (zerocho) 스터디 기록",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --watch ./ ./restServer.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hy2850/NodeJS_study.git"
+  },
+  "author": "ParkHC",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hy2850/NodeJS_study/issues"
+  },
+  "homepage": "https://github.com/hy2850/NodeJS_study#readme",
+  "type": "module",
+  "devDependencies": {
+    "eslint": "^8.6.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "2.5.1"
+  }
+}
