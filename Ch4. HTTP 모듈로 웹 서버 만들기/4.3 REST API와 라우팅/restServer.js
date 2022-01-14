@@ -13,6 +13,12 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         return res.end(data);
       }
+      if (req.url === '/users') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+        });
+        return res.end(JSON.stringify(users)); // ❓ Why use JSON.stringify?
+      }
 
       /**
        * GET /restFront.css, GET /restFront.js file request 들어왔을 때, 이 코드에서 파일 읽어서 제공!
@@ -28,6 +34,26 @@ const server = http.createServer(async (req, res) => {
       }
     } else if (req.method === 'POST') {
       console.log('POST');
+
+      // (restFront.js) submit button sends POST req to '/user'
+      if (req.url === '/user') {
+        let body = '';
+
+        // ⭐️ req -> readable stream : has 'data' and 'end' events
+        // https://stackoverflow.com/a/41521743/9720700
+        req.on('data', (data) => {
+          body += data;
+        });
+
+        return req.on('end', () => {
+          console.log('POST 본문(Body):', body);
+          const { name } = JSON.parse(body);
+          const id = Date.now();
+          users[id] = name;
+          res.writeHead(201, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('ok');
+        });
+      }
     } else if (req.method === 'PUT') {
       console.log('PUT');
     } else if (req.method === 'DELETE') {
