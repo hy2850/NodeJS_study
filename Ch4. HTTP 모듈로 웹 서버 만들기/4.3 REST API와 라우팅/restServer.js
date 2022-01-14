@@ -19,6 +19,11 @@ const server = http.createServer(async (req, res) => {
         });
         return res.end(JSON.stringify(users)); // ❓ Why use JSON.stringify?
       }
+      if (req.url === '/about') {
+        const data = await fs.readFile('./about.html');
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(data);
+      }
 
       /**
        * GET /restFront.css, GET /restFront.js file request 들어왔을 때, 이 코드에서 파일 읽어서 제공!
@@ -56,11 +61,31 @@ const server = http.createServer(async (req, res) => {
       }
     } else if (req.method === 'PUT') {
       console.log('PUT');
+
+      if (req.url.startsWith('/user/')) {
+        const key = req.url.split('/')[2]; // get user 'key' from URL
+        let body = '';
+        req.on('data', (data) => {
+          body += data;
+        });
+        return req.on('end', () => {
+          console.log('PUT 본문(Body):', body);
+          users[key] = JSON.parse(body).name;
+          res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+          return res.end('ok');
+        });
+      }
     } else if (req.method === 'DELETE') {
       console.log('DELETE');
-    } else {
-      throw new Error('Unexpected request');
+      if (req.url.startsWith('/user/')) {
+        const key = req.url.split('/')[2];
+        delete users[key];
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end('ok');
+      }
     }
+    res.writeHead(404);
+    return res.end('NOT FOUND');
   } catch (err) {
     console.error(err);
   }
