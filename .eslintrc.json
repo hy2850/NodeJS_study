@@ -2,7 +2,7 @@
   "plugins": ["prettier"],
   "extends": ["airbnb", "plugin:prettier/recommended", "prettier"],
   "rules": {
-    "prettier/prettier": ["error", { "singleQuote": true }]
+    "prettier/prettier": ["error", { "singleQuote": true, "endOfLine": "auto" }]
   },
   "env": {
 	"browser": true, // use browser variables such as 'window', 'document'
