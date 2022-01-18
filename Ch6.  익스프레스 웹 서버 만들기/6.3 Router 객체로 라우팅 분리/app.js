@@ -13,6 +13,10 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 // console.log(process.env.COOKIE_SECRET);
 
+// Import routes
+import indexRouter from './routes/index.js'; // ✨ cannot omit 'index.js' with node v16.13.0 (module resolution)
+import userRouter from './routes/user.js';
+
 const app = express();
 app.set('port', process.env.PORT || 3000);
 
@@ -32,21 +36,14 @@ app.use(session({
     name: 'session-cookie',
 }));
 
-app.use((req, res, next) => {
-  console.log('모든 요청에 다 실행');
-  next();
-});
+// Use routes
+app.use('/', indexRouter); // 👉🏻 http://localhost:3000
+app.use('/user', userRouter); // 👉🏻 http://localhost:3000/user
 
-app.get(
-  '/',
-  (req, res, next) => {
-    console.log('GET / 요청에서만 실행'); // 🔥 Not res.send! -> ERR_HTTP_HEADERS_SENT
-    next();
-  },
-  (req, res) => {
-    throw new Error('에러는 에러 처리 미들웨어로 감');
-  },
-);
+// Handles unknown endpoints
+app.use((req, res) => { // (req, res, next) - not gonna use next
+  res.status(404).send('Not Found'); // ex) http://localhost:3000/random
+})
 
 app.use((err, req, res, next) => {
   console.log(err);
