@@ -426,6 +426,8 @@ Express 공홈 API reference req, res 문서 찾아보기 (진짜 잘 나와있�
 
 ### 6.5 템플릿 엔진 사용하기
 
+`res.render(view파일, 넣어줄 변수)` 로 호출하면 템플릿 엔진이 html파일 빠진 부분 데이터 넣어서 채워줌 (렌더링); 그걸 클라이언트에 전달
+
 Pug(Jade), Nunjacks 문법 설명. 그냥 쭉 흝어보기만 한 챕터. 필요할때 와서 보자
 
 p.257 템플릿 엔진 : JS 써서 HTML 렌더링; ex) Pug (Jade - Express 기본 엔진), Nunjucks
@@ -464,11 +466,115 @@ ORM : 자바스크립트 → SQL 로 바꿔줌
 
 `npx sequelize init`
 
+`model/index.js ` 정리, `app.js` 생성해서 DB와 서버 연결, `config/config.json` 으로 DB 설정 (MySQL listening PORT 값도 여기서 넣어줘야)
 
 
-7.6.2 모델 정의하기
+
+### 7.6.2 모델 정의하기
 
 대응됨 : Sequelize 모델 ~ MySQL에서 정의한 테이블 
 
 시퀄라이즈 : 모델과 MySQL의 테이블 연결해주는 역할
 
+p.324
+init → 테이블이 모델로 연결 
+associate → 다른 테이블과의 관계 연결
+
+
+
+### 7.6.3 관계 정의
+
+테이블 간의 관계; MySQL은 JOIN 써서 여러 테이블 연결해서 결과 도출
+
+* 1:N
+
+  User 하나가 여러 Comment 가짐
+
+  foreignKey 생성되는 테이블쪽이 belongsTo
+
+  → Comment 테이블에 'commenter'라는 이름으로 foreignKey 생성 (이름 입력 안하면 default name 모델명 + 기본 키 'UserId')
+
+```javascript
+db.User.hasMany(db.Comment, { foreignKey: 'commenter', sourceKey: 'id' });
+db.Comment.belongsTo(db.User, { foreignKey: 'commenter', targetKey: 'id' });
+```
+
+
+
+* 1:1
+
+  User 하나당 한 Info
+
+  belongsTo 어디 쓸지 주의 : Info 모델에 UserId 컬럼이 추가됨
+
+```javascript
+db.User.hasOne(db.Info, { foreignKey: 'UserId', sourceKey: 'id' });
+db.Info.belongsTo(db.User, { foreignKey: 'UserId', targetKey: 'id' });
+```
+
+
+
+* N:M
+
+  Post 1개에 여러 Hashtag 가능 + Hashtag 하나에 여러 Post 가능
+
+  <u>두 테이블의 ID를 연결하는 새로운 테이블</u> 생성해서 연결함 (아래 'PostHashTag')
+
+```javascript
+db.Post.belongsToMany(db.Hashtag, { through: 'PostHashTag' });
+db.Hashtag.belongsToMany(db.Post, { through: 'PostHashTag' });
+db.sequelize.models.PostHashtag // 자동으로 만들어진 모델 access
+```
+
+
+
+### 7.6.4 Sequelize 쿼리
+
+p.328~ 굉장히 잘 설명
+
+Q. `User`는 우리가 만든 class인데, `User.create`, `User.findAll` 같은 메소드 쓸 수 있네?
+→ 아마 `extends Sequelize.Model` 해서 그런듯 (https://sequelize.org/master/manual/model-basics.html)
+
+
+
+### 7.6.5 실습
+
+SSR 체험!
+
+
+
+#### Initial flow
+
+유저 입장 
+→ 클라이언트는 서버에 페이지 렌더링에 필요한 resource 요청 ('/' 로) 
+→ indexRouter가 DB에서 정보 받아서 res.render로 넘겨줌 
+→ nunjucks 템플릿 엔진이 HTML 렌더링해서 클라이언트로 respond 
+
+그래서 morgan에 아래처럼 뜨는군 (`GET /sequelize.js`는 렌더링 된 페이지가 script태그에 있던 sequelize.js 요청하는거)
+
+```text
+GET / 200 10.647 ms - 2084
+GET /sequelize.js 304 1.183 ms - -
+```
+
+
+
+#### 유저 event시 flow
+
+유저가 특정 조작을 하면 (event; 버튼 클릭, 유저 혹은 댓글 추가 등) 
+→ 클라이언트 (`sequelize.js`)가 Ajax request를 서버에 보내고
+→ 라우팅을 거쳐 알맞은 HTTP method를 처리하고 
+→ Sequelize query를 통해 DB를 변경 
+→ 결과를 res.json, res.send 형태로 클라이언트에 결과 전송
+
+
+
+Q. console.log vs res.json
+
+console.log는 말 그대로 콘솔에 출력, res.json은 서버가 클라에 데이터 전송하는 것 (둘이 완전 다름)
+
+>  클라이언트 axios.METHOD ↔️ 서버 res.json, res.send
+
+주의) sequelize.js:15 console.log는 실행 시 브라우저 console에 찍히고, 라우터(아무거나)에서 실행한 console.log는 로컬 터미널에 찍힘
+
+(Node) Server side에서 console.log outputs to the terminal (https://stackoverflow.com/questions/8364790/node-js-console-log-not-logging-anything). sequelize.js는 HTML view에서 script태그를 통해 실행되므로 브라우저 console에 찍히는 듯.
