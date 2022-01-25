@@ -256,7 +256,7 @@ http2는 (21가을) FE개발 수업에서 배운 것 같은데? 중간 이후 �
 
 ### 5.2 Package.json으로 패키지 관리
 
-p.217 전역(global) 설치
+p.217 전역(global) 설치 
 
 npm이 설치된 컴퓨터 로컬 폴더 (C:\Users\사용자이름\AppData\Roaming\npm)에 패키지 설치.
 보통 이 폴더의 경로는 환경변수에 등록되어 있어서, 전역 설치한 패키지는 콘솔 명령어로 사용 가능.
@@ -266,13 +266,17 @@ vs 로컬 설치
 `npm install`는 현재 폴더의 node_modules 폴더에 패키지 설치함.
 → 콘솔로 바로 사용 불가; script에 써서 사용 가능
 
-전역 설치 - package.json에 기록 안돼서, 나중에 필요할 때 `npm install`로 자동 설치 불가
-→ devDependency에 기록해두고
+
+
+전역 설치 - package.json에 기록 안돼서, 나중에 필요할 때 `npm install`로 자동 설치 불가 
+→ devDependency에 기록해두고 
 
 ```
 npm install --save-dev {패키지}
 npx {패키지} {명령어}
 ```
+
+
 
 ### 5.3 패키지 버전 이해
 
@@ -286,11 +290,15 @@ minor, patch : 호환 가능한 버전 → Caret(^)으로 minor/patch 정도만 
 
 `npm i express@next`
 
+
+
 ### 5.4 기타 npm 명령어
 
 ### 5.5 패키지 배포하기
 
 진짜 기타 npm 명령어들
+
+
 
 ---
 
@@ -306,10 +314,14 @@ minor, patch : 호환 가능한 버전 → Caret(^)으로 minor/patch 정도만 
 
 `app.listen(포트, 실행할 콜백)`
 
+
+
 ### 6.2 미들웨어
 
 p.232 라우터, 에러 핸들러도 미들웨어
 `app.use(미들웨어)`
+
+
 
 ⚡️ 에러 - ERR_HTTP_HEADERS_SENT
 
@@ -339,6 +351,8 @@ https://stackoverflow.com/questions/7042340/error-cant-set-headers-after-they-ar
 https://www.codementor.io/@oparaprosper79/understanding-node-error-err_http_headers_sent-117mpk82z8
 → 한글 요약 : https://velog.io/@yhe228/ERRHTTPHEADERSSENT-Cannot-set-headers-after-they-are-sent-to-the-client
 
+
+
 p.233
 🤔 Q. Middleware 는 req, res, next 무조건 모두 가지고 있어야 하나?
 A. ~~next 빼먹으면 안됨~~
@@ -347,39 +361,45 @@ https://stackoverflow.com/questions/42426768/node-js-express-middleware-function
 
 Express API ref도 보면, `app.use`, `app.get` 같은 함수들 2번째 인자로 'middleware'를 받는다는 걸 알 수 있음. `app.get('/', (req, res)=>{})`에서, 2번째 arrow function도 middleware라는 것.
 
+
+
 p.235 자주 쓰는 미들웨어 소개
 
-- morgan - 디버깅용 미들웨어 (HTTP req 로그 출력)
+* morgan - 디버깅용 미들웨어 (HTTP req 로그 출력) 
   `app.use(morgan('dev'))`
 
-- static - 정적인 파일 제공하는 라우터 역할; 서버 경로를 외부에서 보지 못하게 가려주는 효과 (public 폴더)
+* static - 정적인 파일 제공하는 라우터 역할; 서버 경로를 외부에서 보지 못하게 가려주는 효과 (public 폴더)
 
 ```javascript
-app.use('요청 경로', express.static('실제 경로'));
-app.use('/', express.static(path.join(__dirname, 'public')));
+app.use('요청 경로', express.static('실제 경로'))
+app.use('/', express.static(path.join(__dirname, 'public')))
 ```
 
-- body-parser - req body를 해석해서 req.body에 넣어줌
+* body-parser - req body를 해석해서 req.body에 넣어줌
 
 ```javascript
 app.use(express.json());
 app.use(express.urlencoded(...));
-app.use(bodyParser.raw()); // 설치 필요 : npm i body-parser
+app.use(bodyParser.raw()); // 설치 필요 : npm i body-parser 
 app.use(bodyParser.text());
 ```
 
-- cookie-parser - 쿠키 해석해서 req.cookies에
+* cookie-parser - 쿠키 해석해서 req.cookies에
   `app.use(cookieParser(비밀키));`
 
-- express-session - 세션 관리 (로그인용 세션 구현, 특정 사용자를 위한 데이터 임시 저장 등)
+* express-session - 세션 관리 (로그인용 세션 구현, 특정 사용자를 위한 데이터 임시 저장 등)
 
   `app.use(session(옵션));`
 
-  - DB에 세션 저장? Redis 활용?
+  * DB에 세션 저장? Redis 활용?
+
+    
 
 ⭐️ p.242 미들웨어 흐름 (그림 6-6)
 
-p.245 (공부안함) multer - 멀티 파드 데이터 (이미지, 동영상, 파일) 처리
+p.245 (공부안함) multer - 멀티 파드 데이터 (이미지, 동영상, 파일) 처리 
+
+
 
 ### 6.3 Router 객체로 라우팅 분리하기
 
@@ -393,12 +413,16 @@ p.253 특수 패턴(라우트 매개변수) 쓰는 라우터는 일반 라우터
 p.254 router.route(path) : path에 여러 HTTP method handler 추가할 때 유용 (path는 추가로 확장 불가)
 예제) https://expressjs.com/en/4x/api.html#router.route
 
+
+
 ### 6.4 req, res 객체 살펴보기
 
 p.255 Express의 res, req는 Node http 모듈의 res, req 객체를 확장한 것
 → `res.writeHead`, `res.end` 같은 http 모듈 메소드 사용 가능하나, Express 메소드가 편해서 잘 안씀
 
 Express 공홈 API reference req, res 문서 찾아보기 (진짜 잘 나와있음)
+
+
 
 ### 6.5 템플릿 엔진 사용하기
 
@@ -412,12 +436,39 @@ Q. Is template engine still used? Do I have to learn this?
 - https://dev.to/rzeczuchy/are-template-engines-still-relevant-in-2020-1hkk
 - https://stackoverflow.com/questions/51947023/is-there-any-need-of-learning-views-and-template-engines-in-express-when-we-have
 
+
+
 ---
 
 ## Ch 7. MySQL
 
 🔥 도전 : Docker로 실습환경 구축
-→ Notion 'Docker' 페이지에 정리
+→ Notion 'Docker' 페이지에 정리 
 https://www.notion.so/Docker-7f1a38d1358847bb92695bf467a4d014#ebc5009f2ca84233b099cd2119be9321
 
 p.294 mySQL 기초~
+
+
+
+### 7.6 시퀄라이즈 (Sequelize) - ORM
+
+참고) TypeORM (FE개발 때 사용; Documentation 굿)
+
+ORM : 자바스크립트 → SQL 로 바꿔줌
+
+`npm i express morgan nunjucks sequelize sequelize-cli mysql2`
+
+`npm i -D nodemon`
+
+
+
+`npx sequelize init`
+
+
+
+7.6.2 모델 정의하기
+
+대응됨 : Sequelize 모델 ~ MySQL에서 정의한 테이블 
+
+시퀄라이즈 : 모델과 MySQL의 테이블 연결해주는 역할
+
