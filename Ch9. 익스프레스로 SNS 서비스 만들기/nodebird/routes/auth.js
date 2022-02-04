@@ -57,4 +57,18 @@ router.get('/logout', isLoggedIn, (req, res) => {
   res.redirect('/'); // 메인 페이지로 돌아가기
 });
 
+router.get('/kakao', passport.authenticate('kakao')); // 🤔 Q. no req.login? → 성공 시 kakao strategy 자체에서 호출함.
+
+router.get(
+  '/kakao/callback',
+  passport.authenticate('kakao', {
+    failureRedirect: '/',
+  }),
+  (req, res) => {
+    res.redirect('/');
+  },
+);
+// 🤔 Q. 왜 strategy 2번 실행?
+// → 첫번째는 로그인 과정, 두 번째는 OAuth redirect related (https://www.oauth.com/oauth2-servers/redirect-uris/)
+
 module.exports = router;
