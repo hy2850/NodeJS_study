@@ -5,13 +5,16 @@ const path = require('path');
 const session = require('express-session');
 const nunjucks = require('nunjucks');
 const dotenv = require('dotenv');
+const passport = require('passport');
 
 dotenv.config();
 const pageRouter = require('./routes/page');
 
 const { sequelize } = require('./models');
+const passportConfig = require('./passport');
 
 const app = express();
+passportConfig(); // 패스포트 설정
 app.set('port', process.env.PORT || 8001);
 app.set('view engine', 'html');
 nunjucks.configure('views', {
@@ -43,6 +46,8 @@ app.use(
     },
   }),
 );
+app.use(passport.initialize()); // 👉🏻 req객체에 passport 설정 삽입 (req._passport)
+app.use(passport.session()); // 👉🏻 req.user 생성 (req.session에 저장된 정보로 DB에서 유저 정보 fetch해서)
 
 app.use('/', pageRouter);
 
