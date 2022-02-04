@@ -4,6 +4,7 @@
     <div class="timeline">
       {% if user %}
         <div>
+          <!-- 9.4 multer - 게시글(string)도 multipart로 POST -->
           <form id="twit-form" action="/post" method="post" enctype="multipart/form-data">
             <div class="input-group">
               <textarea id="twit" name="content" maxlength="140"></textarea>
@@ -14,7 +15,8 @@
             </div>
             <div>
               <label id="img-label" for="img">사진 업로드</label>
-              <input id="img" type="file" accept="image/*">
+              <input id="img" type="file" accept="image/*"> <!-- 9.4 multer - 태그 일치하게; upload.single('img') -->
+
               <button id="twit-btn" type="submit" class="btn">짹짹</button>
             </div>
           </form>
