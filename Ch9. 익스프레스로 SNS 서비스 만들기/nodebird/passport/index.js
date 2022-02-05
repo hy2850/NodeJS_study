@@ -11,7 +11,22 @@ module.exports = () => {
 
   // ⭐️ 매 요청마다 실행; req.session에 저장된 user.id로 DB에서 유저 정보 fetch; req.user 생성
   passport.deserializeUser((id, done) => {
-    User.findOne({ where: { id } })
+    User.findOne({
+      where: { id },
+      // 9.5 - req.user에 팔로워, 팔로잉 목록 저장
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'nick'],
+          as: 'Followers',
+        },
+        {
+          model: User,
+          attributes: ['id', 'nick'],
+          as: 'Followings',
+        },
+      ],
+    })
       .then((user) => done(null, user))
       .catch((err) => done(err));
   });
