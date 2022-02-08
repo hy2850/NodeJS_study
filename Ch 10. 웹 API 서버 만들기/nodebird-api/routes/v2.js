@@ -1,11 +1,33 @@
 // apiLimiter 적용한 버전
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const { URL } = require('url');
 
 const { verifyToken, apiLimiter } = require('./middlewares');
 const { Domain, User, Post, Hashtag } = require('../models');
 
 const router = express.Router();
+
+// router.use(cors()); // 10-7
+
+// Check if the client domain is registered and allow it with cors
+router.use(async (req, res, next) => {
+  // req.header('origin') : http://localhost:4000
+  // host : localhost:4000
+  const { host } = new URL(req.header('origin'));
+  const domain = await Domain.findOne({
+    where: { host },
+  });
+  if (domain) {
+    // router.use(cors({ origin: host })); // ❌ Embedding middleware inside middleware - use below code
+    // cors({ origin: host })(req, res, next); // 🔥 req denied; mismatching origin
+
+    cors({ origin: req.header('origin') })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 router.post('/token', apiLimiter, async (req, res) => {
   const { clientSecret } = req.body;
