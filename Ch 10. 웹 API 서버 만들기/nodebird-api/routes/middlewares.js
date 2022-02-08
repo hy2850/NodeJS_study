@@ -2,6 +2,7 @@
 // imposes access restriction according to user's sign-in status
 
 const jwt = require('jsonwebtoken');
+const RateLimit = require('express-rate-limit');
 
 exports.isLoggedIn = (req, res, next) => {
   // ⭐️ 로그인 여부 체크 (Passport가 req 객체에 추가해준 함수)
@@ -41,4 +42,24 @@ exports.verifyToken = (req, res, next) => {
       message: '유효하지 않은 토큰입니다',
     });
   }
+};
+
+exports.apiLimiter = RateLimit({
+  windowMs: 60 * 1000, // 1분
+  max: 10,
+  delayMs: 0,
+  handler(req, res) {
+    res.status(this.statusCode).json({
+      code: this.statusCode, // 기본값 429
+      message: '1분에 10번만 요청할 수 있습니다.',
+    });
+  },
+});
+
+exports.deprecated = (req, res) => {
+  res.status(410).json({
+    code: 410,
+    message: '새로운 버전이 나왔습니다. 새로운 버전을 사용하세요.',
+  });
+  // ⭐️ next 없으므로 여기서 끝남
 };
