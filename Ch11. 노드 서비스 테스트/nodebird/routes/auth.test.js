@@ -49,3 +49,10 @@ describe('POST /login', () => {
       .expect(302, done);
   });
 });
+
+// 데이터를 정리하는 코드
+// DB에 데이터 남아있으면 다음 테스트에 영향 줄 수도 있음 (ex. 회원가입한 정보가 계속 남아서 다음 테스트 회원가입 시 에러)
+// 그래서 테이블 싹다 새로 만들어서 초기화!
+afterAll(async () => {
+  await sequelize.sync({ force: true }); // 테이블을 다시 만듦
+});
