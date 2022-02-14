@@ -168,8 +168,8 @@ p.112 ⭐️ 동기 vs 비동기, 블로킹 vs 논블로킹 - Fig 3-10 📚
 | ----------------------------------------------- | ----------- |
 | 바로 return X (백그라운드 작업 완료돼야 return) | 바로 return |
 
-| Blocking                            | Non-blocking                                                       |
-| ----------------------------------- | ------------------------------------------------------------------ |
+| Blocking                            | Non-blocking                                                 |
+| ----------------------------------- | ------------------------------------------------------------ |
 | 백그라운드 작업 완료 여부 계속 체크 | 백그라운드 신경 안씀; 나중에 백그라운드가 완료 알림 주면 그때 체크 |
 
 동기메소드 (ex. readFileSync, writeFileSync) → 이전 작업 완료돼야 다음 작업 처리; <u>백그라운드 작업 완료시까지 메인 쓰레드는 대기</u>
@@ -334,7 +334,7 @@ app.get(
     res.send('GET / 요청에서만 실행'); // 🔥
     next();
   },
-  (req, res) => {
+  (req, res) => { // ⭐️하나의 app.use에 미들웨어 여러 개 연결 가능!
     throw new Error('에러는 에러 처리 미들웨어로 감');
   },
 );
@@ -363,16 +363,17 @@ Express API ref도 보면, `app.use`, `app.get` 같은 함수들 2번째 인자�
 
 
 
-p.235 자주 쓰는 미들웨어 소개
+#### ⭐️ p.235 자주 쓰는 미들웨어 소개
 
-* morgan - 디버깅용 미들웨어 (HTTP req 로그 출력) 
+* morgan (🚨 설치 필요) - 디버깅용 미들웨어 (HTTP req 로그 출력) 
   `app.use(morgan('dev'))`
 
-* static - 정적인 파일 제공하는 라우터 역할; 서버 경로를 외부에서 보지 못하게 가려주는 효과 (public 폴더)
+* static - 정적인 파일 제공하는 라우터 역할; 실제 서버 경로를 외부에서 보지 못하게 가려주는 효과 (public 폴더 용도)
 
 ```javascript
 app.use('요청 경로', express.static('실제 경로'))
-app.use('/', express.static(path.join(__dirname, 'public')))
+app.use('/', express.static(path.join(__dirname, 'public'))) 
+// 클라이언트에서 <script src="/mongoose.js"></script> 로 요청 주면, 실제 서버 'public' 폴더의 mongoose.js를 serve
 ```
 
 * body-parser - req body를 해석해서 req.body에 넣어줌
@@ -384,16 +385,22 @@ app.use(bodyParser.raw()); // 설치 필요 : npm i body-parser
 app.use(bodyParser.text());
 ```
 
-* cookie-parser - 쿠키 해석해서 req.cookies에
+* cookie-parser (🚨 설치 필요) - 쿠키 해석해서 req.cookies에
   `app.use(cookieParser(비밀키));`
 
-* express-session - 세션 관리 (로그인용 세션 구현, 특정 사용자를 위한 데이터 임시 저장 등)
+* express-session (🚨 설치 필요) - 세션 관리 (로그인용 세션 구현, 특정 사용자를 위한 데이터 임시 저장 등)
 
   `app.use(session(옵션));`
 
   * DB에 세션 저장? Redis 활용?
 
     
+
+🤔 Q. 매 request마다 위의 많은 middleware가 매번 실행되나?
+→ ㅇㅇ 매 request마다 호출됨. iddleware에서 next 호출하면 다음 middleware로 넘어가는 식으로.
+https://stackoverflow.com/questions/41862923/does-express-app-use-execute-every-time-a-path-is-heard-on-server-js
+
+
 
 ⭐️ p.242 미들웨어 흐름 (그림 6-6)
 
@@ -406,9 +413,15 @@ p.245 (공부안함) multer - 멀티 파드 데이터 (이미지, 동영상, 파
 p.251 Node http 모듈 라우팅 : if문으로 endpoint 체크 → inconvenient, hard to read
 vs Express routing : easily separable routes
 
-p.253 특수 패턴(라우트 매개변수) 쓰는 라우터는 일반 라우터보다 뒤에 위치시키기
+
+
+#### ⭐️특수 패턴 (route parameters) - req.params
+
+p.253 특수 패턴(라우트 매개변수) 쓰는 라우터는 일반 라우터보다 뒤 에 위치시키기
 `:id → req.params.id`, `:type → req.params.type`
 [Express - Routing - Route parameters](https://expressjs.com/en/guide/routing.html)
+
+
 
 p.254 router.route(path) : path에 여러 HTTP method handler 추가할 때 유용 (path는 추가로 확장 불가)
 예제) https://expressjs.com/en/4x/api.html#router.route
@@ -432,6 +445,8 @@ Pug(Jade), Nunjacks 문법 설명. 그냥 쭉 흝어보기만 한 챕터. 필요
 
 p.257 템플릿 엔진 : JS 써서 HTML 렌더링; ex) Pug (Jade - Express 기본 엔진), Nunjucks
 
+p.260 `res.locals.{변수이름}` 템플릿 엔진에 변수 전달하는 방법 (`res.render` 메소드의 두 번째 인수로 넣는 대신 쓸 수 있는 방법; <u>모든 템플릿 엔진에서 공통으로 접근 가능</u>하다는 차이)
+
 Q. Is template engine still used? Do I have to learn this?
 → server side rendering 공부, FE 없을때 간단히 BE 테스트할때
 
@@ -444,11 +459,23 @@ Q. Is template engine still used? Do I have to learn this?
 
 ## Ch 7. MySQL
 
-🔥 도전 : Docker로 실습환경 구축
+### 🔥 도전 : Docker로 실습환경 구축
+
 → Notion 'Docker' 페이지에 정리 
 https://www.notion.so/Docker-7f1a38d1358847bb92695bf467a4d014#ebc5009f2ca84233b099cd2119be9321
 
+
+
+### 7.4 ~ 7.5 MySQL 기초
+
 p.294 mySQL 기초~
+
+p.298 자료형 및 옵션들
+
+P.299 Primary key (기본 키)
+
+p.303 ForeignKey
+
 
 
 
@@ -456,9 +483,9 @@ p.294 mySQL 기초~
 
 참고) TypeORM (FE개발 때 사용; Documentation 굿)
 
-ORM : 자바스크립트 → SQL 로 바꿔줌
+ORM : 자바스크립트 → SQL 로 바꿔주는 역할
 
-`npm i express morgan nunjucks sequelize sequelize-cli mysql2`
+`npm i express morgan nunjucks sequelize sequelize-cli mysql2` (맨 뒤 3개가 Sequelize 사용에 필요; 🚨 mysql2 는 MySQL - Sequelize 이어주는 드라이버임 DB 프로그램 아님!)
 
 `npm i -D nodemon`
 
@@ -470,19 +497,26 @@ ORM : 자바스크립트 → SQL 로 바꿔줌
 
 
 
-### 7.6.2 모델 정의하기
+#### 7.6.2 모델 정의하기
 
 대응됨 : Sequelize 모델 ~ MySQL에서 정의한 테이블 
 
 시퀄라이즈 : 모델과 MySQL의 테이블 연결해주는 역할
 
+💡 참고) 모델 정의할 때 테이블 이름 따로 지정안해주면, model 이름 pluralize 해서 table 이름으로 씀 - https://sequelize.org/master/manual/model-basics.html#:~:text=1%20%7D)%3B%0Auser.id%3B%20//%201-,Table%20name%20inference,-Observe%20that%2C%20in
+
+
+
+p.321 id 자동생성함; 알아서 id를 기본 키(Primary key)로 연결하므로 id 컬럼은 적어줄 필요X
+`static init`, `static associate`, Sequelize 자료형 및 옵션
+
 p.324
-init → 테이블이 모델로 연결 
+init → MySQL 테이블이 Sequelize 모델로 연결 
 associate → 다른 테이블과의 관계 연결
 
 
 
-### 7.6.3 관계 정의
+#### 7.6.3 관계 정의 ⭐️
 
 테이블 간의 관계; MySQL은 JOIN 써서 여러 테이블 연결해서 결과 도출
 
@@ -492,7 +526,11 @@ associate → 다른 테이블과의 관계 연결
 
   foreignKey 생성되는 테이블쪽이 belongsTo
 
-  → Comment 테이블에 'commenter'라는 이름으로 foreignKey 생성 (이름 입력 안하면 default name 모델명 + 기본 키 'UserId')
+  → Comment 테이블에 'commenter'라는 이름으로 foreignKey 생성 (이름 입력 안하면 default name 모델명 + 기본 키  ex. 'UserId')
+
+  
+
+  + comment.getUser, comment.addUser 같은 관계 메서드 생성 (아래의 lazy loading 참고)
 
 ```javascript
 db.User.hasMany(db.Comment, { foreignKey: 'commenter', sourceKey: 'id' });
@@ -520,6 +558,8 @@ db.Info.belongsTo(db.User, { foreignKey: 'UserId', targetKey: 'id' });
 
   <u>두 테이블의 ID를 연결하는 새로운 테이블</u> 생성해서 연결함 (아래 'PostHashTag')
 
+  Post에는 hashtagId, Hashtag에는 postId라는 foreignKey 생성 + post.getHashtags, post.addHashtags, hashtags.getPosts 같은 기본 관계 메서드 생성 (아래의 lazy loading 참고)
+
 ```javascript
 db.Post.belongsToMany(db.Hashtag, { through: 'PostHashTag' });
 db.Hashtag.belongsToMany(db.Post, { through: 'PostHashTag' });
@@ -528,7 +568,23 @@ db.sequelize.models.PostHashtag // 자동으로 만들어진 모델 access
 
 
 
-### 7.6.4 Sequelize 쿼리
+#### 7.6.4 Sequelize 쿼리
+
+p.332 관계 쿼리 ⭐️ - MySQL의 Join
+
+- find에 `include` 옵션 주는 경우 - <span style="color:green">Eager loading</span>; 테이블 Join해서 한꺼번에 바로 데이터 불러옴
+  Documentation : https://sequelize.org/master/manual/eager-loading.html
+
+- `include` 옵션 안주고 나중에 `get{테이블명}` 같은 함수로 불러오는 경우 - <span style="color:blue">Lazy loading</span>
+
+  https://sequelize.org/master/manual/assocs.html#basics-of-queries-involving-associations
+
+  
+
+  👉🏻 Association (`hasOne`, `belongsTo`, `hasMany`, `belongsToMany`) 형성 시 Lazy loading을 위해 Sequelize가 model instance에 자동으로 추가하는 '관계 메소드' 함수들 정리 (ex. getComments, setCommnets, ...) : 
+  https://sequelize.org/master/manual/assocs.html#special-methods-mixins-added-to-instances
+
+
 
 p.328~ 굉장히 잘 설명
 
@@ -537,13 +593,13 @@ Q. `User`는 우리가 만든 class인데, `User.create`, `User.findAll` 같은 
 
 
 
-### 7.6.5 실습
+#### 7.6.5 실습
 
 SSR 체험!
 
 
 
-#### Initial flow
+##### Initial flow
 
 유저 입장 
 → 클라이언트는 서버에 페이지 렌더링에 필요한 resource 요청 ('/' 로) 
@@ -559,7 +615,7 @@ GET /sequelize.js 304 1.183 ms - -
 
 
 
-#### 유저 event시 flow
+##### 유저 event시 flow
 
 유저가 특정 조작을 하면 (event; 버튼 클릭, 유저 혹은 댓글 추가 등) 
 → 클라이언트 (`sequelize.js`)가 Ajax request를 서버에 보내고
@@ -578,3 +634,479 @@ console.log는 말 그대로 콘솔에 출력, res.json은 서버가 클라에 �
 주의) sequelize.js:15 console.log는 실행 시 브라우저 console에 찍히고, 라우터(아무거나)에서 실행한 console.log는 로컬 터미널에 찍힘
 
 (Node) Server side에서 console.log outputs to the terminal (https://stackoverflow.com/questions/8364790/node-js-console-log-not-logging-anything). sequelize.js는 HTML view에서 script태그를 통해 실행되므로 브라우저 console에 찍히는 듯.
+
+
+
+---
+
+## Ch 8. MongoDB
+
+JS 사용하는 NoSQL
+
+### NoSQL
+
+테이블, 로우, 컬럼 :left_right_arrow: 컬렉션, 다큐먼트, 필드
+
+* 고정된 테이블 (컬럼 규칙) 따로 없음 - 자유로운 데이터 삽입 (→ p.377 mongoose 스키마로 rule 설정 가능)
+* 컬렉션간 Join 미지원 (가능한 경우도 있)
+* 확장성(Scalability), 가용성(Availability)
+  데이터 일관성 보장이 약한 대신, 여러 데이터 빠르고 쉽게 넣을 수 있고 쉽게 여러 서버에 데이터 분산 가능
+
+⭐️상황에 따라 맞는 DB 선택
+ex) 항공사 예약 시스템 → 남은 표 정보, 누가 어떤 표를 예약했는지 등 일관성 중요; RDBMS 사용
+빅데이터, 채팅 메시지, 세션 관리 → 확장성, 가용성 중요; NoSQL 사용 
+
+
+
+p.367~ CRUD 노션에 대충 정리
+
+p.369 id 자동생성 (_id 라는 이름으로 ObjectId 자동 생성)
+
+
+
+### 8.6 몽구스 (Mongoose)
+
+ODM(Object Document Mapping) - MongoDB에 없어서 불편한 기능들 보완
+
+* Schema - 다큐먼트에 rule 설정 (MongoDB에 데이터 넣기 전에, 서버 단에서 데이터 필터링)
+* populate - JOIN 기능
+* Promise 기반 쿼리 빌더
+
+Q. Sequelize는 '자바스크립트 → SQL' 변환해주는 역할이었고, MongoDB는 이미 JS 기반인데 이런 변환이 필요 있나?
+→ 변환보다는, MongoDB를 보완하는 기능들 + 서버에서 DB 사용 쉽게 abstraction 제공
+
+
+
+참고) Mongoose document - get started
+https://mongoosejs.com/docs/index.html
+
+
+
+p.381 Mongoose schema 정의 - 자동으로 _id를 PK로 생성하므로 적어줄 필요X
+
+
+
+populate → Join 같은 것; replaces field with 'ref' path with corresponding document
+https://mongoosejs.com/docs/populate.html#populate
+
+
+
+* 참고) Model.update()
+
+  **only update** - 'overwrite' option default false라서. true면 전체 replace ([참고](https://mongoosejs.com/docs/api/model.html#:~:text=This%20helps%20prevent%20accidentally%20overwriting%20all%20documents%20in%20your%20collection%20with%20%7B%20name%3A%20%27jason%20bourne%27%20%7D.))
+
+  update → deprecated; overwrite가 무조건 false인 updateOne이나 updateMany 대신 사용
+
+
+
+### 서버 파일 구조
+
+├─ public - (Frontend) 클릭 시 특정 endpoint로 req 보내고 res 받아서 서버 반응 처리 (axios)
+├─ routes - 특정 endpoint에 대한 request 받아서 처리
+├─ schemas - Mongoose 모델 정의 및 connect
+├─ views - Frontend; template engine HTML 코드
+└─ app.js - 서버 돌리는 Express 메인 코드
+
+
+
+---
+
+## Ch 9. 익스프레스로 SNS 서비스 만들기
+
+
+
+### 9.1 프로젝트 구조 갖추기 (셋팅)
+
+⭐️ 어떤 데이터베이스 쓸 것인지 (SQL vs NoSQL)
+→ SNS는 사용자와 게시물 간, 게시물과 해시태그 간의 관계가 중요하므로 relational database인 MySQL 선택
+
+참고) Fireship - 7 Database Paradigms (어떤 DB를 써야 할까?)
+https://www.youtube.com/watch?v=W2Z7fbCLSTw&ab_channel=Fireship
+
+
+
+p.398 전역 설치 (`npm i -g`) 피하려면 `npx`
+``npx sequelize init`
+
+이후 폴더 생성 : views (템플릿 파일), routes (라우터), public (정적 파일)
+파일 생성 : app.js (Express 서버 코드), .env (설정값)
+
+프로젝트는 일반적으로 이 구조 따르지만, 서비스가 성장하고 규모가 커질수록 폴더 구조 복잡해짐. 서비스에 맞는 구조 적용하기! 
+
+
+
+p.400 DB password가 하드코딩된 Sequelize 셋팅 config.json → JSON에선 변수 (process.env) 사용 불가; JS로 바꿀 수 있을까?
+
+
+
+### 9.2  데이터베이스 세팅하기
+
+#### p.414 같은 테이블 간 N:M 관계⭐️
+
+ex) 팔로잉 기능 : User 한 명이 팔로워 여러 명 가지는 경우 && 한 사람이 여러 명 팔로잉 하는 경우
+→ User 모델과 User 모델 간에 N:M 관계 존재
+
+- db.<모델>.belongsToMany에서 `as` 옵션으로 이름 지정 필요 (Followers, Followings) + `foreignKey` 는 as랑 반대되는 개념으로 지정 (followingId, followerId)
+- as에 이름 지정 → 관계 메서드 user.getFollowers, user.getFollowings 로 생성됨 + include (eager loading) 때도 as에 지정한 이름으로
+
+
+
+p.417 `npx sequelize init` 으로 config 파일 만들고 아래 치면 DB 자동으로 생성해주는 듯
+
+`npx sequelize db:create`
+
+
+
+p.418 필요한 model 만들고, app.js에서 DB랑 연결시켜준 뒤 `npm start` 하면 알아서 연결되면서 필요한 테이블 생성 (CREATE TABLE IF NOT EXISTS)
+
+
+
+✨ mySQL에서 직접 테이블 안 만들었는데도, Sequelize에서 모델 정의하면 알아서 생성해준다! 
+
+
+
+
+
+### 9.3  Passport 모듈로 로그인 구현하기
+
+- Passport NPM repo (기본 개념 설명)
+  https://www.npmjs.com/package/passport
+
+- 👍 Passport 공식 Document가 매우 부실해서 어떤 유저가 대신 만든 manual
+  https://github.com/jwalton/passport-api-docs#passportsessionoptions
+
+- serialize, deserialize 궁금하면 볼만한 질문
+  https://stackoverflow.com/questions/27637609/understanding-passport-serialize-deserialize
+
+
+
+⭐️ p.421~422 serialize, deserialize 개념 + 전체 과정
+
+- Serialize : 세션(req.session)에 key 저장(ex. user.id), req.login이 호출 (로그인 할 때 한번만)
+- Deserialize : 세션에 저장된 정보를 바탕으로 DB에서 유저 정보 끌어와서 req.user에 저장(다른 미들웨어들이 사용할 수 있게), passport.session() 미들웨어에 의해 매 요청마다 호출
+- Strategy = 로그인 시의 동작; 로그인 과정을 어떻게 처리할지 설명하는 파일
+
+
+
+#### Passport process flow
+
+로그인 요청 <u><span style="color:green">한 번만</span></u> (POST /auth/login)
+→ 라우터에서 passport.authenticate 호출
+→ local strategy 수행 : 입력받은 email, password 값으로 DB에서 유저 정보 fetch
+→ authenticate 함수 콜백 : strategy로부터 넘겨받은 user 객체 받아서 req.login 실행
+→ req.login 메소드 : <span style="color:yellow">serializeUser</span>에 user 객체 넘겨주면서 호출
+→ serializeUser : req.session에 user.id만 저장 (key처럼 써서 DB에서 해당 유저 정보 fetch해오려고; 유저 정보 다 저장하면 부담되니까)
+→ 로그인 완료
+
+로그인 이후 <u><span style="color:red">매 요청마다</span></u>
+passport.session 
+→ passport.<span style="color:yellow">deserializeUser </span>
+→ req.session에 저장된 user.id 써서 DB에서 유저 정보 조회 
+→ req.user에 저장 
+→ 이후 라우터에서 req.user 객체 사용
+
+
+
+---
+
+#### Passport 공부 - abstraction 까보기
+
+- passport.initialize() 미들웨어 : req객체에 passport 설정 삽입 (req._passport)
+
+- passport.session() 미들웨어
+  : req.user 생성 (req.session에 저장된 정보로 DB에서 유저 정보 fetch해서)
+
+  Built-in session-strategy임 `app.use(passport.session());` = `app.use(passport.authenticate('session'));` ([참고](https://github.com/jwalton/passport-api-docs#:~:text=which%20is%20using%20the%20built%2Din%20%22session%20strategy%22.))
+
+- passport.authenticate(...)
+  Strategy 실행
+
+
+
+
+
+Q1. passport.initialize? 매번 실행? passport.session도 매 req마다 실행? → ㅇㅇ 미들웨어니까 (6.2 질문 보기)
+
+Q2. 둘이 딱 붙여놓은 이유?
+→ 매번 새로운 req 들어옴 => req.passport 만들어야 할거 아녀 (initialize)
+passport.session는 사실 built-in 'session strategy'로서, session에 저장된 key 가지고 DB에서 유저 정보 가져와서 req.user에 담아주는 역할 ([ref](https://github.com/jwalton/passport-api-docs#:~:text=which%20is%20using%20the%20built%2Din%20%22session%20strategy%22.)) 
+
+Q3. 로그인 유지는 어떡함? 매번 다시 해야하나? 세션 활용?
+→ 아마 로그인 한번 하면 serializeUser 함수에 의해 req.session에 key 저장되서 유지되는 듯. (logout 함수에서 session.destroy() 함수 호출해야 세션 없어지는 것 처럼, 그냥은 안 없어져 + <u>p.241 서버 메모리에 세션 저장 vs DB에 세션 저장</u>)
+
+⚡️ <span style="color:red">세션 공부 필요!</span>
+
+Q4. 매 request 마다 deserialize하면, 매번 DB에 유저 정보 요청? 그럼 새로고침을 엄청 빠르게 spam해서 서버 마비시킬 수도 있지 않나
+→ negligible
+https://stackoverflow.com/questions/31119162/deserialize-on-each-request-is-this-not-needless-db-reads
+💡 p.442 Note부분에선 잘 바뀌지 않는 사용자 정보는 캐싱 하는게 좋다고 하네. 실제 서비스에선 **Redis** 같은 DB에 사용자 정보 캐싱한대
+
+
+
+Passport 코드 Debug 결과) app.use는 listener 등록하는 것 처럼 맨 처음에만 실행되고, 이후엔 해당 endpoint에 맞는 요청 들어올때마다 callback으로 준 middleware가 실행되는  구조인 듯. 정확한건 코드를 봐야 알 것 같다
+
+Passport 옛날 모듈이라 prototype을 쓰네. 요즘은 syntactic sugar로 class를 쓰지.
+
+
+
+로그인 안한 상태라면, req.passport empty
+로그인 됐다면 passport.session에 의해 deserializeUser 될테고, req.passport.session.user 객체가 있을 것
+
+
+
+참고) Passport 구현 코드를 보고 싶다면 - https://github.com/jaredhanson/passport/tree/a892b9dc54dce34b7170ad5d73d8ccfba87f4fcf/lib/passport
+
+- [lib/passport/middleware](https://github.com/jaredhanson/passport/tree/a892b9dc54dce34b7170ad5d73d8ccfba87f4fcf/lib/passport/middleware) 에 `initialize()`, `authenticate()` 함수 구현 
+
+  Passport authenticate() 함수가 `req` object에 추가하는 함수들 구현 :  `login()`, `logIn()`, `logout()`, `logOut()`, `isAuthenticated()`, and `isUnauthenticated()` (최근에 업데이트 된 내용 - [관련 issue](https://github.com/jwalton/passport-api-docs/issues/8))
+
+- [lib/passport/http/request.js](https://github.com/jaredhanson/passport/blob/a892b9dc54dce34b7170ad5d73d8ccfba87f4fcf/lib/passport/http/request.js)
+  req object에 추가되는 함수들 구현체 ([참고할만한 질문 - How is req.isAuthenticated() in Passport JS implemented?](https://stackoverflow.com/questions/38820251/how-is-req-isauthenticated-in-passport-js-implemented))
+
+Q. req.logIn 함수 보면, `this`를 겁나 쓰는데, `req`를 지칭하는게 맞나?
+→ ㅇㅇ. req는 object고, req.login = function(){...} 형태로 object method를 만들어주는 것. [Object method 내부에서 this는 object를 지칭](https://www.w3schools.com/js/js_this.asp#:~:text=it%20is%20used%3A-,In%20an%20object%20method%2C%20this%20refers%20to%20the%20object.,-Alone%2C%20this%20refers)
+
+
+
+👏 abstraction의 장막을 들춰서 작동 원리를 파악하는 행위, 기계 뚜껑을 열어서 어떻게 기계가 동작하는지 알아보는 행위
+
+---
+
+
+
+Kakao Strategy
+
+🤔 Q. 왜 strategy 2번 실행? passport-kakao 쪽 코드를 봐야 하나? (auth.js)
+
+
+
+내 서비스에서 로그아웃 해도, 카카오에선 로그아웃X;
+카카오 로그아웃 구현 
+https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#logout
+
+
+
+
+
+🚨 디버깅 Todo
+
+로그인 안한 상태라면, req._passport empty
+로그인 됐다면 passport.session에 의해 deserializeUser 될테고, req.user 객체가 있을 것
+
+logIn 함수에 breakpoint 찍고 this 출력해보기
+
+
+
+
+
+### 9.4 multer 패키지로 이미지 업로드 구현
+
+\<input> 태그로 이미지 선택해서 업로드 진행
+→ multer 패키지 이용해서, 서버 디스크 (서버 root의 uploads 폴더)에 이미지 저장
+→ 클라이언트에게 이미지 주소 respond
+
+
+
+p.439
+✨ 실제 서버 운영 시: 서버에 이미지 저장하면 간단하나, 서버 날라가면 이미지도 같이 날라감.
+AWS S3 같은 Cloud storage 같은 ''정적 파일 제공 서비스' 사용해서 이미지를 따로 저장하고 제공하는게 좋음
+→ multer-s3나 multer-google-storage 참고 + 16장 참고
+
+
+
+p.438 (👍 아름답다) map과 Promise.all 활용
+
+
+
+### 9.5 프로젝트 마무리 - 팔로워, 팔로잉 관계
+
+p.442 deserializeUser 캐싱하기 - Redis DB 활용
+
+
+
+Q. 태그 검색 빈칸으로 하면 모든 태그 검색됨
+→ req URL이 '/' 로 찍혀서 모든 포스트 출력
+
+Q. 이미지 어떻게 표시? 
+→ 'posts' 테이블에 저장된 이미지 경로 저장; 
+main.html view 템플릿의 \<img src="{{twit.img}}" alt="섬네일"> 으로 경로 넘겨서 표시
+(✨express.static 덕에 클라이언트가 /img 폴더 access 하면, 실제론 서버 /uploads 폴더 엑세스 하는거랑 같음)
+
+Q. user.js에서 팔로우 기능 구현할 때, user.addFollowing 이 아니라 addFollowings가 맞지 않냐? 근데 잘 되는거보니 아닌 것 같기도
+→ 그건 여럿 추가할 때! addFollowing은 하나 추가할 때.
+참고) https://sequelize.org/master/manual/assocs.html#:~:text=task%20%3D%3E%20task.title)%3B-,Foo.belongsToMany(Bar%2C%20%7B%20through%3A%20Baz%20%7D),-The%20same%20ones
+
+
+
+---
+
+## Ch 10. 웹 API 서버 만들기
+
+Node - JS 사용하므로, 웹 API에서 데이터 전달할 떄 사용하는 JSON 100% 활용 가능
+
+**JWT 토큰** - 모바일 앱과 노드 서버간에 사용자 인증을 구현할 때 자주 사용
+
+
+
+### 10.1 API 서버 이해하기
+
+**API (Application Programming Interface)** : 다른 애플리케이션에서 현재 프로그램의 기능을 사용할 수 있게 허용하는 접점
+
+* 제공하고 싶은 특정 기능 혹은 정보만 API를 통해 '인증된' 다른 사용자들에게 open
+* 사용량 제한 둘 수도 있고
+
+**크롤링** : 웹사이트에서 정보를 얻고싶은데, 자체 제공하는 API가 없을 경우 사용하는 정보 수집 방법. 표면적으로 들어나는 정보를 주기적으로 수집해 가공함
+→ 크롤링은 웹 서버 트래픽 증가시켜서 서버에 무리가 감. 공개해도 되는 정보들은 API로 만들어 다른 사용자들이 활용할 수 있게 만드는게 좋다 
+
+
+
+### 10.2 프로젝트 구조 갖추기
+
+Nodebird API : 게시글, 해시태그, 사용자 정보를 JSON 형식으로 제공
+
+**CORS** : 다른 도메인에서 함부로 현재 서버에 접근하는 것을 막는 조치 (Security). req 보낸 클라이언트 도메인과 응답하는 곳의 도메인이 다르면 blocked by CORS
+
+Q. 서버 → 서버 요청은 CORS 문제 발생X?
+
+
+
+### 10.3 JWT 토큰으로 인증하기
+
+인증 과정
+
+**JWT (JSON Web Token)** : JSON 형식의 데이터를 저장하는 토큰; 인증된 정보 주고받는 용도
+
+Header (토큰 종류, 해시 알고리즘 정보), Payload (내가 전달하고 싶은 내용물), Signature (토큰 변조 여부 확인)
+
+특징 : 내용 다 보임 (don't send sensitive info like password), 변조 불가능 (JWT 비밀키로 signature 만들어서 위조 방지), (단점) 용량 큼  
+
+`npm i jsonwebtoken`
+
+
+
+v1.js
+
+라우터 JSON 응답들 = 정해진 format 따름
+
+ex) code (성공 - 200, 에러 - 400번대 중 상황에 맞는 코드), message (에러 시), payload
+
+
+
+### 10.4 호출 서버 만들기 (API 사용할 다른 클라이언트)
+
+클라이언트 측에서 헤더에 jwt 넣어서 보내줌 (axios.get req에서 `headers: { authorization: req.session.jwt }`)
+
+
+
+API 서버에서 에러 코드와 에러 메시지 상세하게 보내줘야 클라이언트 측에서 무슨 일이 일어났는지 알 수 있음
+
+
+
+만료된 토큰 → 갱신하는 코드
+
+
+
+🤔 Q. Can you catch 400 error with try~catch? What is considered an error? Are responses without status 200 all errors?
+https://stackoverflow.com/questions/54502376/what-is-try-catch-really-catching
+
+👉🏻 Axios 특징인 듯? 200 이외면 모조리 reject
+https://pipedream.com/community/t/faq-how-do-i-stop-axios-from-throwing-an-error-on-4xx-5xx-requests/923
+
+default response status, validateStatus 없거나, validateStatus 만족하면 resolve / 아니면 reject with error
+https://github.com/axios/axios/blob/d99d5faac29899eba68ce671e6b3cbc9832e9ad8/lib/core/settle.js
+
+💡 windows.fetch는 400 reject 안함
+https://stackoverflow.com/questions/40248231/how-to-handle-http-code-4xx-responses-in-fetch-api
+[공식 문서](https://developer.mozilla.org/en-US/docs/Web/API/fetch#:~:text=A%20fetch()%20promise%20only%20rejects%20when%20a%20network%20error%20is%20encountered%20(which%20is%20usually%20when%20there%E2%80%99s%20a%20permissions%20issue%20or%20similar).%20A%20fetch()%20promise%20does%20not%20reject%20on%20HTTP%20errors%20(404%2C%20etc.).%20Instead%2C%20a%20then()%20handler%20must%20check%20the%20Response.ok%20and/or%20Response.status%20properties.)
+
+
+
+### 10.5 SNS API 서버 만들기
+
+#### JWT 활용하는 인증 Flow 정리
+
+클라이언트
+토큰 발급(도메인 등록하고 받은 client secret key req.body에 넣어서 보내줌); 발급받은 토큰은 req.session.jwt에 저장 
+→ API서버에 req 보낼 때 header authorization에 JWT 넣어서 보냄
+→ 토큰 괜찮으면 정상적인 router response / 토큰 만료 시 재발급 / 이외 에러는 `return error.response` (Q. 이게 try~catch에서 잡혀?)
+
+서버
+'/token' 에서 토큰 발급, 비밀 키 `process.env.JWT_SECRET` 사용
+→ 클라에서 요청 들어올 때마다 verifyToken; 클라에게 받은 JWT (req.headers.authorization)를 비밀 키 가지고 jwt.verify
+→ 문제 없으면 요청 처리 / 문제 있으면 에러 객체 반환 `res.status(에러코드).json({ code, message })`
+
+에러 처리가 매우 delicate 한 듯.
+
+Q. JWT 어디에 넣어서 보낼지는 내가 맘대로 정해도 되는건가? 클라이언트와 잘 약속하고 documentation만 잘 써놓으면..
+
+
+
+### 10.6 사용량 제한 구현
+
+apiLimiter, deprecated → middleware로 구현해서 reuse
+
+HTTP 응답 코드 documentation 하자
+ex) 200 (JSON 데이터), 401 (Invalid token), 410 (New version is out), 419 (Token expired), 429 (Max 1 req per min)
+
+💡 예전 버전을 사용하고 있는 클라이언트가 있을 수도 있음 → API 업데이트 했다고 옛날 버전 지원 끊지 말기; deprecated 여부를 클라이언트에게 알려주고 시간차를 두고 닫기 (노드 LTS 방식)
+
+
+
+### 10.7 CORS 이해하기 ⭐️
+
+'클라이언트(웹 브라우저) → 서버' 요청 보낼 때, 도메인 다르면 요청 차단
+
+ex) nodebird-client 프론트 localhost:4000 → nodebird-api 서버 localhost:8002
+
+
+
+CORS란?
+
+Same origin policy (XHR, Fetch default 설정) 서버와 다른 도메인을 가진 클라이언트에서 실행된 스크립트가 서버에 resource 요청하면 블락하는 기능
+
+CORS : 지정한 도메인에 대해선 req 받아주게끔 하는 설정.
+클라이언트는 req 보내기 전, OPTIONS method 형태로 preflight req 보내서 서버가 허용하는 req 정보 파악
+response header의 Access-Control-Allow-Headers에 허용 도메인 정보 담아서 클라이언트에게 알려줌.
+https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+
+
+
+Preflight OPTION 메소드로 패킷 보내서, req 보내도 되는지 체크함
+
+Request Headers의 Origin을 보고 허용할지 말지 결정
+
+서버가 보내주는 Response Headers에 'Access-Control-Allow-Headers' 
+
+cors - 서버가 보내주는 response의 header에 'Access-Control-Allow-Headers' 쉽게 심어주는 abstraction
+(`res.set` 혹은 `res.header`로 직접 header 심어도 됨)
+
+
+
+p.489 프록시 서버 - 클라에서 다른 도메인 서버로 요청 보낼때 CORS에 막히면, 일단 중간에 같은 도메인 서버 (프록시 서버) 거쳐서 보내는 방법도 있음
+참고 모듈) http-proxy-middleware (Express와 프록시 서버 연동해주는 모듈)
+
+
+
+
+
+
+
+<실제 개발 시>
+
+어떤 기능이 필요한지
+
+route 결정 (어떤 endpoint, URL로 해당 기능을 처리할건지)
+
+Express로 구현
+
+
+
+
+
+FE개발 라우팅 어떻게 했는지 궁금하네. 
+React router로 endpoint URL 정하고, 서버에서 해당 endpoint에 알맞게 라우팅 페이지 공급한 것 같은데
+
+
+
+생활코딩 - Nodejs로 만들어진 Web app을 리눅스에서 구동하는 방법 (PM2 + EC2)
+https://www.notion.so/Node-ec0ffd61884e4189adfec36e14d4db25#5cf9b2a85ff2469d9a172f131fdd17de
