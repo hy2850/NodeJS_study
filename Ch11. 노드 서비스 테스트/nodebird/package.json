@@ -4,7 +4,8 @@
   "description": "SNS service made with Express",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app"
+    "start": "nodemon app",
+    "test": "jest"
   },
   "author": "Park",
   "license": "MIT",
@@ -25,6 +26,7 @@
     "sequelize-cli": "^6.4.1"
   },
   "devDependencies": {
+    "jest": "^27.5.1",
     "nodemon": "^2.0.15"
   }
 }
