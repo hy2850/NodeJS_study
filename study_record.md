@@ -1009,7 +1009,24 @@ API 서버에서 에러 코드와 에러 메시지 상세하게 보내줘야 클
 🤔 Q. Can you catch 400 error with try~catch? What is considered an error? Are responses without status 200 all errors?
 https://stackoverflow.com/questions/54502376/what-is-try-catch-really-catching
 
-👉🏻 Axios 특징인 듯? 200 이외면 모조리 reject
+```js
+// nodebird-client/routes/index.js
+/* 
+Q. client : axios 요청 보냄
+API server : res.status(419), res.status(401) 같은걸로 응답하는 경우
+⚡️ client 쪽에서 catch(error)로 잡히네??
+*/
+
+try {
+    const tokenResult = await axios.post('http://localhost:8002/v1/token', ...);
+	...
+    const result = await axios.get('http://localhost:8002/v1/test', ...);
+} catch (error) {
+    console.error(error);
+}
+```
+
+👉🏻 Axios 특징인 듯? 서버에서 받은 status가 200 이외면 모조리 reject
 https://pipedream.com/community/t/faq-how-do-i-stop-axios-from-throwing-an-error-on-4xx-5xx-requests/923
 
 default response status, validateStatus 없거나, validateStatus 만족하면 resolve / 아니면 reject with error
@@ -1086,6 +1103,169 @@ p.489 프록시 서버 - 클라에서 다른 도메인 서버로 요청 보낼�
 참고 모듈) http-proxy-middleware (Express와 프록시 서버 연동해주는 모듈)
 
 
+
+
+
+## Ch 11. 노드 서비스 테스트하기
+
+만든 서비스가 잘 동작하는지 테스트 - 기능이 많으면 일일히 하기 힘드니, 테스트 프로그램을 짜서 내가 만든 프로그램을 테스트하도록 
+
+배울 테스트 기법 : 유닛 / 통합 / 부하 테스트 + 테스트 커버리지 체크
+
+
+
+👍 커밋들 하나씩 따라가면서 코드 및 주석 보기!
+
+
+
+### 11.1. 테스트 준비
+
+`npm i -D jest`
+
+스크립트 `"test": "jest"`
+
+p.495 테스트용 파일 : 파일명에 test나 spec 넣기 (이러면 jest가 알아서 찾아서 실행함)
+
+
+
+### 11.2. 유닛 테스트 (unit test)
+
+p.501 작은 단위의 함수나 모듈이 의도된 대로 정확히 작동하는지 테스트
+
+
+
+`test(테스트에 대한 설명, 테스트 내용 담은 함수)` - 단일 테스트
+
+`describe(테스트 그룹에 대한 설명, 여러 test를 담은 함수)` - 테스트를 그룹화
+
+`expect(val or func to test)` + `toEqual(expected matching value)` / `toBeCalledTimes(함수가 몇 번 호출되었는지)` / `toBeCalledWith(호출 시 받아야 하는 인수)`
+
+* `toHaveBeenCalledWith`, `toHaveBeenCalledTimes`는 다른 이름의 같은 함수임 (alias)
+
+
+
+p.499 isLoggedIn, isNotLoggedIn 테스팅 → req, res, next 객체 **mocking** (가짜로 만들어서 넣어줌)
+
+```js
+const res = {
+    status: jest.fn(() => res),
+    send: jest.fn(),
+};
+const next = jest.fn();
+```
+
+
+
+테스트 방법 => test 함수 내부에서 테스트하고자 하는 함수 호출한 뒤, expect로 원하는 내용 실행됬는지 체크
+
+
+
+p.502 **컨트롤러** = 라우터에서 응답을 보내는 미들웨어 (addFollowing)
+
+
+
+p.507 User DB 모델 mocking → `jest.mock`에 모듈 경로 넣기 + 바로 그 모듈 import
+
+`mockReturnValue`로 해당 모델이 어떤 값 반환하는지 정해주기; 적절히 바꿔서 모든 if branch test
+
+
+
+p.508 이건 addFollowing 함수 단위 테스트이므로, 실제 DB가 잘 작동하는지 테스트는 안함; DB에 값 저장하거나 할때 오류나는 경우는 테스트X → 통합 테스트, 시스템 테스트 (11.4)
+
+
+
+### 11.3. 테스트 커버리지
+
+코드의 어느 정도 테스트했나, 안한 부분은 어디인가 한 눈에 보기 가능
+
+`jest --coverage`
+
+스크립트 `"coverage": "jest --coverage"`
+
+명시적으로 테스트하거나 import한 파일만 체크 → 100% 떠도 실제로 프로젝트의 모든 코드를 테스트한게 아님!
+
+
+
+### 11.4. 통합 테스트 (integration test)
+
+DB와 연결해서 서버 테스트
+
+`npm i -D supertest`
+
+Sequelize config/config.json test 부분 수정 후, `npx sequelize db:create --env test` 로 테스트용 DB 생성
+
+
+
+🤔 Q. 어떻게 자동으로 config의 'test' 데이터베이스 사용하는거지? .env에 아무 설정도 안했는데
+
+→ jest로 실행 시, default로 process.env.NODE_ENV를 'test'로 셋팅 ([docs](https://jestjs.io/docs/environment-variables))
+
+
+
+* 테스트를 위한 값이나 외부 환경 (ex. DB) 셋팅 시 활용하는 함수들 : 
+  `beforeAll`, `afterAll` : 모든 테스트 전/후
+  `beforeEach`, `afterEach` : 각 테스트 전/후
+
+* supertest의 함수 `request(app)`으로 우리 서버 특정 라우터에 REST API 요청 보냄.
+  (supertest가 app의 라우터 알아서 실행 (abstraction 엄청 심하네)
+
+* expect에 예상되는 응답의 결과 넣어서 체크; 테스트 마무리 시에는 두 번째 인수에 `done` 넣어주기
+
+
+
+auth.js 커버 못한 부분
+
+25~27 /join error
+
+외 엄청 많음 (`npm run coverage`로 체크)
+
+
+
+### 11.5. 부하 테스트 (load test)
+
+서버가 얼마만큼의 요청을 견딜 수 있는지 (또는 수용할 수 있는지) 테스트
+
+* 코드의 문법적, 논리적 문제 → 유닛 테스트와 통합 테스트로 어느정도 커버
+* 서버 수용량, 하드웨어 제약 (메모리 양; Out of Memory 문제) → load test 필요⭐️
+
+
+
+`npm i -D artillery`
+
+`npx artillery quick --count 100 -n 50 http://localhost:8001`
+100명의 가상 사용자 (virtual user)가 50번씩 요청 보냄 - 총 5,000번 요청이 서버로 전달
+
+결과
+
+* 받은 응답 코드 (http.code)
+* 초당 처리한 요청 횟수 (http.request_rate)
+* 요청 처리하는데 걸린 시간 ms (http.response_time) → min/max/median/p95 p99 (하위 95/99%값)
+
+
+
+실제 사용자의 행동 (ex. 회원가입 -> 로그인 -> 태그 클릭) 스크립트로 써서 테스트 가능
+
+`npx artillery run loadtest.json`
+
+duration 60s, arrivalRate 30명/s - 1,800명이 접속
+각 유저는 4번의 요청을 서버로 보내서, 총 7,200번 요청 전송 (커밋의 loadtest.json 파일 참고)
+
+
+
+p.526 서버가 load test 감당 못하고 느려질 때
+
+* 서버 사양 업그레이드, 여러 개로 늘리거나, 코드를 효율적으로 개선 (ex. 노드 = 싱글 코어니까, 클러스터링으로 서버를 여러 개 실행)
+* 요청-응답 시 DB에 접근할 때 가장 많은 시간 소요; 반복적으로 가져오는 데이터는 <span style="color:red">caching</span>하든지 해서 DB 접근 줄이기
+* arrivalRate 줄이거나 늘려서 여러 번 테스트 반복해서 평균 내보기. 내 서버가 어느정도까지 감당할 수 있나!
+
+
+
+### 기타 안 다룬 테스트들
+
+* 시스템 테스트 - 회사 QA들이 테스트 목록 두고 체크해나가며 진행
+* 인수 테스트 - 알파/베타 테스트처럼 특정 사용자 집단이 실제 서비스를 사용하는 것처럼 진행
+
+⭐️ 테스트의 중요성 - 에러 사전에 잡아내는 것 외에도, 테스트를 작성하면 <u>나중에 코드에 변경 사항이 생겼을 때, 어떤 부분에 영향을 미치는지</u> 쉽게 파악 가능. 하지만 모든 코드에 대한 테스트를 작성하기 어려우므로, 우선순위가 높은 기능부터 테스트 범위 정하기
 
 
 
