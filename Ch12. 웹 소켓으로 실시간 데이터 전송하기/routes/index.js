@@ -59,6 +59,7 @@ router.get('/room/:id', async (req, res, next) => {
       title: room.title,
       chats: [],
       user: req.session.color,
+      chatRoomId: req.params.id, // ⭐️ pass roomId to server-side-rendered client page & hand it over to Socket.io server
     });
   } catch (error) {
     console.error(error);

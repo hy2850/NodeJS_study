@@ -11,14 +11,11 @@ module.exports = (server, app, sessionMiddleware) => {
   const room = io.of('/room');
   const chat = io.of('/chat');
 
-  io.use((socket, next) => {
-    cookieParser(process.env.COOKIE_SECRET)(
-      socket.request,
-      socket.request.res,
-      next,
-    );
-    sessionMiddleware(socket.request, socket.request.res, next);
-  });
+  // 😡 (Debugging) Socket.io v4 error
+  const wrap = (middleware) => (socket, next) =>
+    middleware(socket.request, {}, next);
+  chat.use(wrap(cookieParser(process.env.COOKIE_SECRET)));
+  chat.use(wrap(sessionMiddleware));
 
   room.on('connection', (socket) => {
     console.log('room 네임스페이스에 접속');
@@ -54,8 +51,12 @@ module.exports = (server, app, sessionMiddleware) => {
       console.log('chat 네임스페이스 접속 해제');
       socket.leave(roomId);
 
-      const currentRoom = socket.adapter.rooms[roomId];
-      const userCount = currentRoom ? currentRoom.length : 0;
+      // 😡 (Debugging) Socket.io v4 error
+      const currentRoom = socket.adapter.rooms.get(
+        socket.handshake.query.roomId, // 아니면 그냥 위에서 구한 roomId 써도 됨
+      );
+      const userCount = currentRoom ? currentRoom.size : 0;
+
       if (userCount === 0) {
         // 유저가 0명이면 방 삭제
         const signedCookie = cookie.sign(
