@@ -21,28 +21,29 @@ nunjucks.configure('views', {
 });
 connect(); // mongoDB 연결!
 
+const sessionMiddleware = session({
+  resave: false,
+  saveUninitialized: false,
+  secret: process.env.COOKIE_SECRET,
+  cookie: {
+    httpOnly: true,
+    secure: false,
+  },
+});
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
-app.use(
-  session({
-    resave: false,
-    saveUninitialized: false,
-    secret: process.env.COOKIE_SECRET,
-    cookie: {
-      httpOnly: true,
-      secure: false,
-    },
-  }),
-);
+app.use(sessionMiddleware);
 
 // 👉🏻 sessionId를 활용해서 사용자에게 고유한 색깔 부여
 app.use((req, res, next) => {
   if (!req.session.color) {
     const colorHash = new ColorHash();
     req.session.color = colorHash.hex(req.sessionID);
+
+    console.log('app.js session TEST : ', req.sessionID, req.session.color); // DBG
   }
   next();
 });
@@ -66,4 +67,4 @@ const server = app.listen(app.get('port'), () => {
   console.log(app.get('port'), '번 포트에서 대기중');
 });
 
-webSocket(server, app);
+webSocket(server, app, sessionMiddleware);
