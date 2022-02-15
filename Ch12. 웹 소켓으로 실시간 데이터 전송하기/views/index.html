@@ -6,15 +6,20 @@
   </head>
   <body>
     <div>F12를 눌러 console 탭과 network 탭을 확인하세요.</div>
+    <!-- 
+      💡 Server exposes its module to client with this script (io as global var)
+      https://socket.io/docs/v4/client-installation/#standalone-build 
+    -->
+    <script src="/orange/socket.io.js"></script>
     <script>
-      const webSocket = new WebSocket('ws://localhost:8005');
-      webSocket.onopen = function () {
-        console.log('서버와 웹소켓 연결 성공!');
-      };
-      webSocket.onmessage = function (event) {
-        console.log(event.data);
-        webSocket.send('클라이언트에서 서버로 답장을 보냅니다');
-      };
+      const socket = io.connect('http://localhost:8005', {
+        path: '/orange',
+        transports: ['websocket']
+      });
+      socket.on('news', function (data) {
+        console.log(data);
+        socket.emit('reply', 'Hello Node.JS');
+      });
     </script>
   </body>
 </html>
