@@ -1,0 +1,104 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h1>GIF 채팅방</h1>
+<fieldset>
+  <legend>채팅방 목록</legend>
+  <table>
+    <thead>
+    <tr>
+      <th>방 제목</th>
+      <th>종류</th>
+      <th>허용 인원</th>
+      <th>방장</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for room in rooms %}
+      <tr data-id="{{room._id}}">
+        <td>{{room.title}}</td>
+        <td>{{'비밀방' if room.password else '공개방'}}</td>
+        <td>{{room.max}}</td>
+        <td style="color: {{room.owner}}">{{room.owner}}</td>
+        <td>
+          <button
+            data-password="{{'true' if room.password else 'false'}}"
+            data-id="{{room._id}}"
+            class="join-btn"
+          >입장
+          </button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="error-message">{{error}}</div>
+  <a href="/room">채팅방 생성</a>
+</fieldset>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io.connect('http://localhost:8005/room', { // ⭐️ 네임스페이스
+    path: '/socket.io',
+  });
+
+  socket.on('newRoom', function (data) { // 새 방 이벤트 시 새 방 생성
+    const tr = document.createElement('tr');
+    let td = document.createElement('td');
+    td.textContent = data.title;
+    tr.appendChild(td);
+    td = document.createElement('td');
+    td.textContent = data.password ? '비밀방' : '공개방';
+    tr.appendChild(td);
+    td = document.createElement('td');
+    td.textContent = data.max;
+    tr.appendChild(td);
+    td = document.createElement('td');
+    td.style.color = data.owner;
+    td.textContent = data.owner;
+    tr.appendChild(td);
+    td = document.createElement('td');
+    const button = document.createElement('button');
+    button.textContent = '입장';
+    button.dataset.password = data.password ? 'true' : 'false';
+    button.dataset.id = data._id;
+    button.addEventListener('click', addBtnEvent);
+    td.appendChild(button);
+    tr.appendChild(td);
+    tr.dataset.id = data._id;
+    document.querySelector('table tbody').appendChild(tr); // 화면에 추가
+  });
+
+  socket.on('removeRoom', function (data) { // 방 제거 이벤트 시 id가 일치하는 방 제거
+    document.querySelectorAll('tbody tr').forEach(function (tr) {
+      if (tr.dataset.id === data) {
+        tr.parentNode.removeChild(tr);
+      }
+    });
+  });
+
+  function addBtnEvent(e) { // 방 입장 클릭 시
+    if (e.target.dataset.password === 'true') {
+      const password = prompt('비밀번호를 입력하세요');
+
+      // 👉🏻 redirect with roomId ⭐️
+      location.href = '/room/' + e.target.dataset.id + '?password=' + password;
+    } else {
+      location.href = '/room/' + e.target.dataset.id;
+    }
+  }
+
+  document.querySelectorAll('.join-btn').forEach(function (btn) {
+    btn.addEventListener('click', addBtnEvent);
+  });
+</script>
+{% endblock %}
+
+{% block script %}
+<script>
+  window.onload = () => {
+    if (new URL(location.href).searchParams.get('error')) {
+      alert(new URL(location.href).searchParams.get('error'));
+    }
+  };
+</script>
+{% endblock %}
