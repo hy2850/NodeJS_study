@@ -97,13 +97,27 @@
           chat: this.chat.value, // 🤔 Q. this? → <form id="chat-form"> that triggered event
         })
           .then(() => {
-            console.log("실행되는지 테스트");
             e.target.chat.value = ''; // 보낸 채팅 지우기
           })
           .catch((err) => {
             console.error(err);
           });
       }
+    });
+
+    // When new gif file is uploaded
+    document.querySelector('#gif').addEventListener('change', function (e) {
+      console.log("파일 : ", e.target.files);
+      const formData = new FormData();
+      formData.append('gif', e.target.files[0]);    
+      axios.post('/room/{{room._id}}/gif',formData )
+        .then(() => {
+          e.target.file = null;
+        })
+        .catch((err) => {
+          console.error(err);
+        }
+      );
     });
   </script>
 {% endblock %}

@@ -33,6 +33,7 @@ const sessionMiddleware = session({
 });
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/gif', express.static(path.join(__dirname, 'uploads')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -58,9 +59,12 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
+  Logger.error(err.message);
+
   res.locals.message = err.message;
   res.locals.error = process.env.NODE_ENV !== 'production' ? err : {};
   res.status(err.status || 500);
+
   res.render('error');
 });
 
