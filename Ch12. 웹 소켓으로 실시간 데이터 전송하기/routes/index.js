@@ -54,16 +54,37 @@ router.get('/room/:id', async (req, res, next) => {
     ) {
       return res.redirect('/?error=허용 인원이 초과하였습니다.');
     }
+
+    const chats = await Chat.find({ room: room._id }).sort('createdAt');
+
     return res.render('chat', {
       room,
       title: room.title,
-      chats: [],
+      chats,
       user: req.session.color,
       chatRoomId: req.params.id, // ⭐️ pass roomId to server-side-rendered client page & hand it over to Socket.io server
     });
   } catch (error) {
     console.error(error);
-    return next(error);
+    return next(error); // 💡 return works like 'break' in for-loop here, stopping execution
+  }
+});
+
+router.post('/room/:id/chat', async (req, res, next) => {
+  try {
+    const { chat } = req.body;
+    const newChat = await Chat.create({
+      room: req.params.id,
+      user: req.session.color,
+      chat,
+    });
+    const io = req.app.get('io');
+    io.of('/chat').to(req.params.id).emit('chat', newChat); // to everyone in the same namespace and room (including the sender)
+
+    res.send('ok');
+  } catch (error) {
+    console.error(error);
+    next(error);
   }
 });
 

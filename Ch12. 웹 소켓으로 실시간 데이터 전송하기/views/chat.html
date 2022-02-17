@@ -39,12 +39,14 @@
     <input type="text" id="chat" name="chat">
     <button type="submit">전송</button>
   </form>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io.connect('http://localhost:8005/chat', { // ⭐️ chat 네임스페이스
       path: '/socket.io',
       query: { roomId : `{{chatRoomId}}` }
     });
+
     socket.on('join', function (data) {
       const div = document.createElement('div');
       div.classList.add('system');
@@ -53,6 +55,7 @@
       div.appendChild(chat);
       document.querySelector('#chat-list').appendChild(div);
     });
+
     socket.on('exit', function (data) {
       const div = document.createElement('div');
       div.classList.add('system');
@@ -60,6 +63,47 @@
       div.textContent = data.chat;
       div.appendChild(chat);
       document.querySelector('#chat-list').appendChild(div);
+    });
+
+    socket.on('chat', function (data) {
+      console.log('client : ', data); // DBG
+
+      const div = document.createElement('div');
+      if (data.user === '{{user}}') {
+        div.classList.add('mine');
+      } else {
+        div.classList.add('other');
+      }
+      const name = document.createElement('div');
+      name.textContent = data.user;
+      div.appendChild(name);
+      if (data.chat) {
+        const chat = document.createElement('div');
+        chat.textContent = data.chat;
+        div.appendChild(chat);
+      } else {
+        const gif = document.createElement('img');
+        gif.src = '/gif/' + data.gif;
+        div.appendChild(gif);
+      }
+      div.style.color = data.user;
+      document.querySelector('#chat-list').appendChild(div);
+    });
+
+    document.querySelector('#chat-form').addEventListener('submit', function (e) {
+      e.preventDefault(); // 🤔 Q. Is axios needed? Difference between form VS axios
+      if (e.target.chat.value) {
+        axios.post('/room/{{room._id}}/chat', { // room._id = 우리가 넘겨준 chatRoomId
+          chat: this.chat.value, // 🤔 Q. this? → <form id="chat-form"> that triggered event
+        })
+          .then(() => {
+            console.log("실행되는지 테스트");
+            e.target.chat.value = ''; // 보낸 채팅 지우기
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      }
     });
   </script>
 {% endblock %}
