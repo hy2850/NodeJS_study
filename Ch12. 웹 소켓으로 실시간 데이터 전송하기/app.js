@@ -6,6 +6,7 @@ const session = require('express-session');
 const nunjucks = require('nunjucks');
 const dotenv = require('dotenv');
 const ColorHash = require('color-hash').default;
+const Logger = require('./logger');
 
 dotenv.config();
 const webSocket = require('./socket');
@@ -43,7 +44,7 @@ app.use((req, res, next) => {
     const colorHash = new ColorHash();
     req.session.color = colorHash.hex(req.sessionID);
 
-    console.log('app.js session TEST : ', req.sessionID, req.session.color); // DBG
+    // console.log('app.js session TEST : ', req.sessionID, req.session.color); // DBG
   }
   next();
 });
@@ -64,7 +65,7 @@ app.use((err, req, res, next) => {
 });
 
 const server = app.listen(app.get('port'), () => {
-  console.log(app.get('port'), '번 포트에서 대기중');
+  Logger.info(`${app.get('port')}번 포트에서 대기중`);
 });
 
 webSocket(server, app, sessionMiddleware);

@@ -2,6 +2,7 @@ const SocketIO = require('socket.io');
 const axios = require('axios');
 const cookieParser = require('cookie-parser');
 const cookie = require('cookie-signature');
+const Logger = require('./logger');
 
 module.exports = (server, app, sessionMiddleware) => {
   const io = SocketIO(server, { path: '/socket.io' });
@@ -17,15 +18,19 @@ module.exports = (server, app, sessionMiddleware) => {
   chat.use(wrap(cookieParser(process.env.COOKIE_SECRET)));
   chat.use(wrap(sessionMiddleware));
 
+  // room.use(wrap(cookieParser(process.env.COOKIE_SECRET)));
+  room.use(wrap(sessionMiddleware));
+  // io.use(wrap(sessionMiddleware)); // 🔥 doesn't work when connecting to namespaces
+
   room.on('connection', (socket) => {
-    console.log('room 네임스페이스에 접속');
+    const userId = socket.request.session.color;
+    Logger.warn(`${userId} room 네임스페이스에 접속`);
     socket.on('disconnect', () => {
-      console.log('room 네임스페이스 접속 해제');
+      Logger.warn(`${userId} room 네임스페이스에서 접속 해제`);
     });
   });
 
   chat.on('connection', (socket) => {
-    console.log('chat 네임스페이스에 접속');
     const req = socket.request;
     const {
       headers: { referer }, // 👉🏻 URL from main.html 'addBtnEvent' function
@@ -33,6 +38,9 @@ module.exports = (server, app, sessionMiddleware) => {
     const roomId = referer
       .split('/')
       [referer.split('/').length - 1].replace(/\?.+/, '');
+
+    Logger.warn(`${req.session.color} chat 네임스페이스 ${roomId}에 접속`);
+
     socket.join(roomId);
     /*
     코드 설명
@@ -48,7 +56,9 @@ module.exports = (server, app, sessionMiddleware) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('chat 네임스페이스 접속 해제');
+      Logger.warn(
+        `${req.session.color} chat 네임스페이스 ${roomId}에 접속 해제`,
+      );
       socket.leave(roomId);
 
       // 😡 (Debugging) Socket.io v4 error
