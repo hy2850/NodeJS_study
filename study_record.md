@@ -318,8 +318,10 @@ minor, patch : 호환 가능한 버전 → Caret(^)으로 minor/patch 정도만 
 
 ### 6.2 미들웨어
 
+정의) 요청과 응답의 중간(middle)에 위치하며, 요청과 응답을 조작하여 기능을 추가하거나 나쁜 요청을 걸러내는 등의 여러가지 작업을 수행.
+`app.use(미들웨어)` 로 사용
+
 p.232 라우터, 에러 핸들러도 미들웨어
-`app.use(미들웨어)`
 
 
 
@@ -374,6 +376,7 @@ Express API ref도 보면, `app.use`, `app.get` 같은 함수들 2번째 인자�
 app.use('요청 경로', express.static('실제 경로'))
 app.use('/', express.static(path.join(__dirname, 'public'))) 
 // 클라이언트에서 <script src="/mongoose.js"></script> 로 요청 주면, 실제 서버 'public' 폴더의 mongoose.js를 serve
+app.use('/gif', express.static(path.join(__dirname, 'uploads'))) // '/gif/happy.jpg'를 요청하면, 서버의 'uploads' 폴더에서 찾아봄
 ```
 
 * body-parser - req body를 해석해서 req.body에 넣어줌
@@ -658,9 +661,9 @@ ex) 항공사 예약 시스템 → 남은 표 정보, 누가 어떤 표를 예�
 
 
 
-p.367~ CRUD 노션에 대충 정리
+p.367~ CRUD 노션에 대충 정리 (어차피 개발 시엔 Mongoose ODM 쓸꺼라 MongoDB 커맨드는 잘 안쓸 듯)
 
-p.369 id 자동생성 (_id 라는 이름으로 ObjectId 자동 생성)
+p.369 id 자동생성 (⭐️ _id 라는 이름으로 ObjectId 자동 생성)
 
 
 
@@ -677,7 +680,7 @@ Q. Sequelize는 '자바스크립트 → SQL' 변환해주는 역할이었고, Mo
 
 
 
-참고) Mongoose document - get started
+커맨드 참고) Mongoose document - get started
 https://mongoosejs.com/docs/index.html
 
 
@@ -1266,6 +1269,383 @@ p.526 서버가 load test 감당 못하고 느려질 때
 * 인수 테스트 - 알파/베타 테스트처럼 특정 사용자 집단이 실제 서비스를 사용하는 것처럼 진행
 
 ⭐️ 테스트의 중요성 - 에러 사전에 잡아내는 것 외에도, 테스트를 작성하면 <u>나중에 코드에 변경 사항이 생겼을 때, 어떤 부분에 영향을 미치는지</u> 쉽게 파악 가능. 하지만 모든 코드에 대한 테스트를 작성하기 어려우므로, 우선순위가 높은 기능부터 테스트 범위 정하기
+
+
+
+
+
+## Ch 12. Socket
+
+🔥 저자 코드는 v2 버전을 쓰는데, v4로 버전업 되면서 기능이 엄청 바뀜. 코드가 안돌아가서 디버깅하느라 고생함 (특히 12.5) 
+
+
+
+### 12.1. 웹 소켓 이해하기
+
+* 기존 HTTP : 
+  
+  - 단방향 통신 (클라이언트 → 서버)
+  - req/res 주고받으면 연결 끊김
+  - **polling** (클라이언트가 서버에 새로운 업데이트가 있는지 확인하는 요청 보내서, 만약 있으면 새로운 내용을 가져오는 방법)
+  
+* 웹 소켓 : 
+
+  * 양방향 통신 (클라이언트 ↔️ 서버) 
+
+  * 연결이 이루어지면 계속 연결된 상태 유지
+
+* 서버센트 이벤트 (Server Sent Events, SSE) : 
+  
+  * EventSource 객체 사용
+  * 서버가 클라이언트에 지속적으로 데이터 보냄
+  * 단방향 통신 (서버 → 클라이언트)
+    ex) 주식 차트 업데이트, SNS에서 새로운 게시물 가져오기 등 <u>서버에서 클라이언트에게 지속적으로, 일방적으로 데이터 보내주는 경우에 적합</u>
+
+p.532 그림 12-3 폴링 vs SSE vs 웹 소켓
+
+Socket.io = 웹 소켓을 편리하게 사용할 수 있도록 도와주는 라이브러리 (wrapper, abstraction)
+
+Shares port with HTTP server - no need to set port (그림 12-4)
+
+
+
+
+
+### 12.2. ws 모듈로 웹 소켓 사용하기
+
+p.537
+
+- 이벤트 기반으로 작동 (ws.on 'connection', 'error', 'close', 'message')
+- 4가지 상태 (ws.readyState) 존재 : CONNECTING, OPEN, CLOSING, CLOSED → OPEN일 때만 에러 없이 메시지 보내기 가능 (ws.send)
+- 클라이언트 쪽에서도 websocket 객체를 통해 통신 주고받을 수 있게 코드 짜야 (양방향 통신)
+  💡 (클라이언트) http가 아닌 **ws 프로토콜** 사용해서 연결 `const webSocket = new WebSocket('ws://localhost:8005');`
+- 크롬 개발자 도구 → Network 탭 → 처음 websocket 연결 통신 이외에 polling request 같은거 없음 → websocket 연결 req 클릭해서 message 탭 보면 웹소켓을 이용한 서버-클라 통신 볼 수 있음  
+
+
+
+👉🏻 클라이언트의 IP 알아내는 유명한 방법 (Express의 경우 'proxy-addr' 패키지 사용해도 됨) ([Get the client's IP address in socket.io](https://stackoverflow.com/questions/6458083/get-the-clients-ip-address-in-socket-io))
+`const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;`
+
+(크롬에서는 localhost ip가 IPv6 ::1 로 뜸)
+
+
+
+### 12.3. Socket.io 사용하기
+
+p.542 Socket.IO의 핵심 : `io`와 `socket` 객체
+
+여러 정보 담고 있음 + 여기에 event listener 등록
+
+* socket.request : req 객체
+* socket.request.res : res 객체
+* socket.id : 소켓 고유의 아이디; 소켓 주인
+
+
+
+⭐️ ws와는 다르게 custom event-listener 만들기 가능 (클라, 서버에서 사용할때 서로 이름만 일치하면 됨)
+→ 정보 전송 : `socket.emit(이벤트 이름, 보낼 데이터)`
+
+
+
+p.543
+
+SocketIO에 넣어주는 path는 클라, 서버가 일치해야 ([default '/socket.io'](https://socket.io/docs/v4/server-api/#serverpathvalue)) - 불일치시, 연결을 위한 polling이 404뜨면서 계속 연결 시도 반복. 
+
+
+
+💡 ws 모듈과는 다르게, 클라이언트에서 http 프로토콜로 연결
+→ 🤔 Why?) Socket.io는 먼저 polling (xhr) 방식으로 서버와 연결, 이후 websocket으로 업그레이드 (가능하면. 불가능하면 polling으로 양방향 통신 구현)
+(+ `transports: ['websocket']` 옵션으로 처음부터 websocket 방식으로만 통신하게 만들 수 있음)
+
+
+
+
+
+### 12.4. 실시간 GIF 채팅방 만들기
+
+mongoDB, Mongoose ODM 활용
+
+
+
+#### p.552 namespace
+기본적으로는 '/' namespace에 연결, 하지만 custom으로 만들기 가능
+
+* client : `const socket = io.connect('http://localhost:8005/room');` → room namespace에 연결
+* server : `const room = io.of('/room');`
+
+👍 그림 참고 굿 : https://socket.io/docs/v4/server-api/#namespace
+
+docs : https://socket.io/docs/v4/namespaces/
+
+
+
+#### p.556 room
+
+네임스페이스보다 더 세부적인 개념; namespace 안에서도 <u>같은 방에 있는 소켓끼리만 데이터 주고받기 가능</u>
+
+`socket.join(roomId)`, `socket.leave(roomId)`
+
+그림 12-11 참고
+
+
+
+views
+
+구현 순서 : layout.html → error.html → main.html (메인 화면) → room.html (방 생성 화면) → chat.html (채팅 화면)
+
+(views/main.html) location.href = 현재 페이지 주소 (URL) → 바꾸면 바꾼 주소로 redirect됨
+
+main.html, chat.html → 서로 다른 namespace (room, chat) 사용해서 Socket.io에 연결
+
+
+
+p.557 각 사용자에게 고유한 색상 부여 → 바뀌지 않는 값인 `req.sessionID`를 `color-hash` 패키지 사용해서 색깔 생성
+(socket.id 사용도 고려해봤으나, 방 나갔다가 들어올때마다 소켓 disconnect, connect 되면서 바뀌므로 색깔 inconsistent - ❌)
+
+
+
+⭐️서버 라우팅 코드에서도 app을 통해 Socket instance 쓸 수 있게 (이런 식으로 여러 파일들을 연결)
+
+```js
+// socket.js
+module.exports = (server, app) => {
+  const io = SocketIO(server, { path: '/socket.io' });
+  app.set('io', io); // 👉🏻 다른 라우터에서도 io 쓸 수 있게 (req.app.get('io'))
+  ...
+};
+```
+
+
+
+12.4 정리
+라우팅은 아직 하나도 안만듬 (main.html에서 redirect 해주는거 받는 라우터 만들어야)
+socket.js는 Socket.io 연결 및 이벤트 처리만; 라우팅 같은 서버 로직은 따로 짜야함
+
+Q. 새 방 생성 시 (Socket.io 'newRoom' 이벤트) 라우터에서 방 id를 어떻게 만들어주는지
+→ Mongoose create시 알아서 생성하는 ObjectId (routes/index.js의 router.post('/room') 부분)
+
+
+
+
+
+### 12.5. 미들웨어와 소켓 연결
+
+p.558 Socket.io도 미들웨어 사용할 수 있다!
+
+`io.use(미들웨어)`
+
+유저마다 색깔 정해서 `req.session.color` 에 저장함 → <u>socket.js에서 세션에 접근하려면, express-session 미들웨어 공유</u> ⭐️
+
+
+
+p.561 socket.js → app.js 서버 라우터에 axios 요청 보낼 땐 (ex. 방 삭제), 어떤 유저가 요청 보내는지 서버는 모름.
+
+express-session은 세션 쿠키인 req.signedCookies['connect.sid']를 보고 현재 세션이 누구에게 속해 있는지를 판단함
+
+브라우저에서 axios 요청 보내면 자동으로 쿠키를 같이 넣어서 보내지만, 우리가 만든 서버는 그러지 않으므로 express-session이 요청자가 누군지 파악 불가능.
+
+=> 우리가 직접 요청 헤더에 세션 쿠키 넣어서 보내줘야 함. 
+
+
+
+🔥🔥🔥😡 (15Feb22) 버그 1 - socket.js에서 socket.request.session이 undefined로 뜸. sessionMiddleware가 작동하지 않는건가? (추측)
+
+io.use 내부의 console.log가 실행이 안된다?
+
+io.use 말고 room.use 하면 실행된다! session도 정상적으로 잡힌다!
+
+chat.use 하면 session 다시 undefined... 뭐지??
+
+=> 저자 Github에 올라와있는 코드 실행해보니 잘된다. socket.io 버전 문제인 듯.
+
+<span style="color : red">module version 때문에 app crashing 경험</span>
+
+
+
+원본 에러 코드 → socket.request.res 만 {} 로 바꾸면 [공식 Doc에 나온 코드 됨](https://socket.io/docs/v4/faq/#usage-with-express-session)
+혹은 `socket.request.res || {}`
+
+```js
+io.use((socket, next) => {
+  cookieParser(process.env.COOKIE_SECRET)(
+    socket.request,
+    socket.request.res,
+    next,
+  );
+  sessionMiddleware(socket.request, socket.request.res, next);
+});
+```
+
+
+
+공식 doc에 나온 다른 방법 (안됨) - https://socket.io/docs/v4/middlewares/#compatibility-with-express-middleware
+
+```js
+const wrap = (middleware) => (socket, next) => middleware(socket.request, {}, next);
+io.use(wrap(cookieParser(process.env.COOKIE_SECRET)));
+io.use(wrap(sessionMiddleware));
+```
+
+
+
+해결! namespace 문제였던 듯
+
+```js
+const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+chat.use(wrap(cookieParser(process.env.COOKIE_SECRET)));
+chat.use(wrap(sessionMiddleware));
+```
+
+
+
+🔥🔥🔥😡 (15Feb22) 버그 2 - `socket.adapter.rooms` 이제 Map(string, Set)이라서 indexing 안됨
+
+router에서 chat.html render 시, roomId 넘겨주고, chat.html 렌더링 완료 후 Socket.io 연결할 때 query parameter로 roomId 넘겨줘서 그거 활용
+https://stackoverflow.com/questions/25083564/socket-io-parameters-on-connection
+
+
+
+
+
+🤔 Q. 근데 chat namespace로 접속해도, default namespace인 io.use는 실행되야 하는거 아닌가? 이러면 namespace별로 미들웨어 일일히 설정해줘야 하잖아
+
+나랑 비슷한 생각 한 사람 질문 - https://stackoverflow.com/questions/27884731/socket-io-namespaces-and-server-dont-share-middleware
+
+
+
+🤔 Q. 페이지 URL (ex. 채팅방 http://localhost:8005/room/QSxz13s)과 Socket.io에서 쓰는 URL (ex. chat 네임스페이스 io.connect('http://localhost:8005/chat') -> 실제 요청은 ws://localhost:8005/socket.io/?EIO=4&transport=polling&t=NxyShqf 로) 차이?
+
+💡 둘이 당연히 다름! 전자는 '클라이언트 → app 서버'로 요청 보내는 주소고 (REST API), 후자는 Socket.io websocket 연결 주소 (그림 12-4)
+웹 소켓이 결국 Node.js 서버 (abstracted by Express)에 붙어서 작동하는거라 주소가 비슷해보이는 것 같다.
+
+특히, connect시 넣어주는 namespace랑 실제 요청 주소랑 완전 다른거 주의; namespace는 logical stage에서 걸러내는 듯
+
+websocket 주소의 'socket.io' 부분은 default path인거고, 이건 SocketIO 인스턴스 만들면서 path로 설정 가능!
+
+
+
+####  12.5 Flow 정리
+
+main.html '입장' 버튼 클릭 
+→ location.href에 의해 '/room/roomId'로 redirect 
+→ router.get('/room/:id') 에서 받아서 처리 
+→ chat.html로 넘어가서 Socket.io의 chat 네임스페이스에 연결됨 
+→  req.session.color 혹은 req.params에서 터짐 (undefined) 👺
+
+
+
+Test)
+
+서버 : io.on('connect')
+
+client : io.connect('http://localhost:8005/chat') 
+
+처럼 다른 namespace로 접속하면 io.on 코드 실행 안되는 듯?
+
+
+
+
+
+### 12.6. 채팅 구현하기
+
+Front - Server (REST API app / Socket) - DB
+
+
+
+✨ (특히 라우터 내에선 꼭) try~catch 구문으로 묶어서 코드짜자. 에러 처리하는 습관
+
+
+
+#### 채팅 보낼때 flow
+
+chat.html → router (create new document in MongoDB) → Socket.io sends new chat →  chat.html
+
+💡 router 안 거치는 경우 (DB에 저장X) : socket.js에 `chat.on('chat')` 만들고, chat.html에서 `chat.to(room).emit('chat', 새 메시지)` - socket만 이용해서 쉽게 구현 가능
+
+⭐️ p.575 소켓 통신과 함께 데이터베이스 조작이 필요한 경우, 소켓만으로 해결하기보다는 HTTP 라우터를 거치는 것이 좋습니다.
+
+
+
+🤔 Q. chat.html에서, form의 기본 event 대신 이벤트 핸들러 등록하고 e.preventDefault() 한 뒤, axios 사용해서 라우터에 접근하는 이유는?
+→ form 내부에서 chat과 gif 파일 둘 다 받는데, 둘을 서로 다른 route에서 처리하기 위해 + more detailed works
+
+
+
+
+
+### 12.7. gif 업로드 구현
+
+event handler 'change' 이벤트
+
+
+
+<input *type*="file" *id*="gif" *name*="gif" *accept*="image/gif">
+
+new FormData, e.target.files
+
+
+
+Q. 다른 extension 이미지 파일들은 안받나?
+→ 받아짐. "image/gif"는 '파일 업로드' 버튼 클릭했을때, 처음 어떤 확장자 파일들을 보여줄 것인지만 결정.
+['can be easily circumvented, so you should always validate the uploaded file on the server also.'](https://stackoverflow.com/questions/3828554/how-to-allow-input-type-file-to-accept-only-image-files)
+
+
+
+
+
+### 스스로 해보기 +
+
+* 방 제거 시, 해당 방에 올라온 이미지 파일들 (서버의 uploads 폴더에 올라온) 제거
+
+
+
+
+
+
+
+
+
+
+
+16Feb22
+
+오전 - Socket.io io.on test reproduce → client/server project directory setup & separation / tsconfig 공부 / esLint ES6 import error
+
+
+
+
+
+client
+server
+
+eslintrc
+When using eslint with Typescript, eslintrc @typescript-eslint/parser has 'parserOptions.project' option to specify 'tsconfig' to parse the files with
+client and server needs to have separate tsconfig because of this (different files to include)
+
+tsconfig include - files to include in the program
+esModuleInterop - ES6 module 사용
+
+
+How to run node server code? 
+실행은 어떻게 하지?
+
+1. compile 'ts' file with 'tsc' into 'js' file and run it with 'nodemon'
+2. ts-node → no 'watch'?
+use 'tsc-watch'?
+
+nodemon
+https://stackoverflow.com/questions/37979489/how-to-watch-and-reload-ts-node-when-typescript-files-change
+
+ts-node : tsc + node (no outdir?)
+tsc-watch : tsc + outDir + nodemon (watch)
+
+
+
+
+
+
+
+
 
 
 
